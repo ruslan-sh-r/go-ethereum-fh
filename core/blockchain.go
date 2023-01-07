@@ -1420,7 +1420,7 @@ func (bc *BlockChain) writeBlockWithState(block *types.Block, receipts []*types.
 				// diff sidechain. Suspend committing until this operation is completed.
 				header := bc.GetHeaderByNumber(chosen)
 				if header == nil {
-					log.Warn("Reorg in progress or TriesInMemory value has been increased, trie commit postponed", "number", chosen, "default_tries_in_memory", TriesInMemory, "tries_in_memory", TriesInMemory)
+					log.Warn("Reorg in progress, trie commit postponed", "number", chosen)
 				} else {
 					// If we're exceeding limits but haven't reached a large enough memory gap,
 					// warn the user that the system is becoming unstable.
