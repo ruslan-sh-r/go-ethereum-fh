@@ -215,7 +215,7 @@ func dbStats(ctx *cli.Context) error {
 	stack, _ := makeConfigNode(ctx)
 	defer stack.Close()
 	path := stack.ResolvePath("chaindata")
-	db, err := leveldb.NewCustom(path, "", false, func(options *opt.Options) {
+	db, err := leveldb.NewCustom(path, "", func(options *opt.Options) {
 		options.ReadOnly = true
 	})
 	if err != nil {
@@ -234,7 +234,7 @@ func dbCompact(ctx *cli.Context) error {
 	defer stack.Close()
 	path := stack.ResolvePath("chaindata")
 	cache := ctx.GlobalInt(utils.CacheFlag.Name) * ctx.GlobalInt(utils.CacheDatabaseFlag.Name) / 100
-	db, err := leveldb.NewCustom(path, "", false, func(options *opt.Options) {
+	db, err := leveldb.NewCustom(path, "", func(options *opt.Options) {
 		options.OpenFilesCacheCapacity = utils.MakeDatabaseHandles()
 		options.BlockCacheCapacity = cache / 2 * opt.MiB
 		options.WriteBuffer = cache / 4 * opt.MiB // Two of these are used internally
@@ -266,7 +266,7 @@ func dbGet(ctx *cli.Context) error {
 	stack, _ := makeConfigNode(ctx)
 	defer stack.Close()
 	path := stack.ResolvePath("chaindata")
-	db, err := leveldb.NewCustom(path, "", false, func(options *opt.Options) {
+	db, err := leveldb.NewCustom(path, "", func(options *opt.Options) {
 		options.ReadOnly = true
 	})
 	if err != nil {
