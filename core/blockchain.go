@@ -1973,6 +1973,9 @@ func (bc *BlockChain) insertChain(chain types.Blocks, verifySeals bool) (int, er
 		if err != nil {
 			bc.reportBlock(block, receipts, err)
 			atomic.StoreUint32(&followupInterrupt, 1)
+			if firehoseContext := firehose.MaybeSyncContext(); firehoseContext.Enabled() {
+				firehoseContext.RecordCancelBlock(block, err)
+			}
 			return it.index, err
 		}
 		// Update the metrics touched during block processing
@@ -1993,8 +1996,19 @@ func (bc *BlockChain) insertChain(chain types.Blocks, verifySeals bool) (int, er
 		if err := bc.validator.ValidateState(block, statedb, receipts, usedGas); err != nil {
 			bc.reportBlock(block, receipts, err)
 			atomic.StoreUint32(&followupInterrupt, 1)
+			if firehoseContext := firehose.MaybeSyncContext(); firehoseContext.Enabled() {
+				firehoseContext.RecordCancelBlock(block, err)
+			}
 			return it.index, err
 		}
+
+		if firehoseContext := firehose.MaybeSyncContext(); firehoseContext.Enabled() {
+			// Calculate the total difficulty of the block
+			ptd := bc.GetTd(block.ParentHash(), block.NumberU64()-1)
+			td := new(big.Int).Add(block.Difficulty(), ptd)
+			firehoseContext.EndBlock(block, td)
+		}
+
 		proctime := time.Since(start)
 
 		// Update the metrics touched during block validation
