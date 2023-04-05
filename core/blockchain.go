@@ -1744,7 +1744,7 @@ func (bc *BlockChain) insertChain(chain types.Blocks, verifySeals bool) (int, er
 			bc.reportBlock(block, receipts, err)
 			atomic.StoreUint32(&followupInterrupt, 1)
 			if firehoseContext := firehose.MaybeSyncContext(); firehoseContext.Enabled() {
-				firehoseContext.RecordCancelBlock(block, err)
+				firehoseContext.CancelBlock(block, err)
 			}
 			return it.index, err
 		}
@@ -1766,7 +1766,7 @@ func (bc *BlockChain) insertChain(chain types.Blocks, verifySeals bool) (int, er
 			bc.reportBlock(block, receipts, err)
 			atomic.StoreUint32(&followupInterrupt, 1)
 			if firehoseContext := firehose.MaybeSyncContext(); firehoseContext.Enabled() {
-				firehoseContext.RecordCancelBlock(block, err)
+				firehoseContext.CancelBlock(block, err)
 			}
 			return it.index, err
 		}
