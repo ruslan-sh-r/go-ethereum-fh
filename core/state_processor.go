@@ -84,11 +84,7 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 
 		receipt, err := ApplyTransaction(p.config, p.bc, nil, gp, statedb, header, tx, usedGas, cfg, firehoseContext)
 		if err != nil {
-			if firehoseContext.Enabled() {
-				firehoseContext.RecordFailedTransaction(err)
-				firehoseContext.ExitBlock()
-			}
-
+			// Trapped later at 'Process' call site at which point the block is canceled
 			return nil, nil, 0, err
 		}
 
