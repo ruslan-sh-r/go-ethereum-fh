@@ -85,11 +85,7 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 
 		msg, err := tx.AsMessage(types.MakeSigner(p.config, header.Number))
 		if err != nil {
-			if firehoseContext.Enabled() {
-				firehoseContext.RecordFailedTransaction(err)
-				firehoseContext.ExitBlock()
-			}
-
+			// Trapped later at 'Process' call site at which point the block is canceled
 			return nil, nil, 0, err
 		}
 
