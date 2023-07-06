@@ -54,14 +54,13 @@ func NewStateProcessor(config *params.ChainConfig, bc *BlockChain, engine consen
 // Process returns the receipts and logs accumulated during the process and
 // returns the amount of gas that was used in the process. If any of the
 // transactions failed to execute due to insufficient gas it will return an error.
-func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg vm.Config) (types.Receipts, []*types.Log, uint64, error) {
+func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg vm.Config, firehoseContext *firehose.Context) (types.Receipts, []*types.Log, uint64, error) {
 	var (
-		receipts        types.Receipts
-		usedGas         = new(uint64)
-		header          = block.Header()
-		allLogs         []*types.Log
-		gp              = new(GasPool).AddGas(block.GasLimit())
-		firehoseContext = firehose.MaybeSyncContext()
+		receipts types.Receipts
+		usedGas  = new(uint64)
+		header   = block.Header()
+		allLogs  []*types.Log
+		gp       = new(GasPool).AddGas(block.GasLimit())
 	)
 
 	if firehoseContext.Enabled() {
@@ -73,23 +72,32 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 		misc.ApplyDAOHardFork(statedb, firehoseContext)
 	}
 
+	txFirehoseContext := firehoseContext
+	if txFirehoseContext.Enabled() {
+		// 5 MiB should hold enough for all transaction and it's re-used for all transactions so shouldn't be a big deal for the memory
+		txFirehoseContext = firehose.NewSpeculativeExecutionContext(5 * 1024 * 1024)
+	}
+
 	// Iterate over and process the individual transactions
 	for i, tx := range block.Transactions() {
 		statedb.Prepare(tx.Hash(), block.Hash(), i)
 
-		if firehoseContext.Enabled() {
+		if txFirehoseContext.Enabled() {
 			// London fork not active in this branch yet, replace by `header.BaseFee` instead of `nil` when it's the case (and remove this comment)
-			firehoseContext.StartTransaction(tx, nil)
+			txFirehoseContext.StartTransaction(tx, uint(i), nil)
 		}
 
-		receipt, err := ApplyTransaction(p.config, p.bc, nil, gp, statedb, header, tx, usedGas, cfg, firehoseContext)
+		receipt, err := ApplyTransaction(p.config, p.bc, nil, gp, statedb, header, tx, usedGas, cfg, txFirehoseContext)
 		if err != nil {
 			// Trapped later at 'Process' call site at which point the block is canceled
 			return nil, nil, 0, err
 		}
 
-		if firehoseContext.Enabled() {
-			firehoseContext.EndTransaction(receipt)
+		if txFirehoseContext.Enabled() {
+			txFirehoseContext.EndTransaction(receipt)
+
+			// We must flush using the "global" context here, since the speculative context don't hold the real global lock
+			firehoseContext.FlushTransaction(txFirehoseContext)
 		}
 
 		receipts = append(receipts, receipt)
@@ -115,21 +123,21 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 // and uses the input parameters for its environment. It returns the receipt
 // for the transaction, gas used and an error if the transaction failed,
 // indicating the block was invalid.
-func ApplyTransaction(config *params.ChainConfig, bc ChainContext, author *common.Address, gp *GasPool, statedb *state.StateDB, header *types.Header, tx *types.Transaction, usedGas *uint64, cfg vm.Config, firehoseContext *firehose.Context) (*types.Receipt, error) {
+func ApplyTransaction(config *params.ChainConfig, bc ChainContext, author *common.Address, gp *GasPool, statedb *state.StateDB, header *types.Header, tx *types.Transaction, usedGas *uint64, cfg vm.Config, txFirehoseContext *firehose.Context) (*types.Receipt, error) {
 	msg, err := tx.AsMessage(types.MakeSigner(config, header.Number))
 	if err != nil {
 		return nil, err
 	}
 
-	if firehoseContext.Enabled() {
-		firehoseContext.RecordTrxFrom(msg.From())
+	if txFirehoseContext.Enabled() {
+		txFirehoseContext.RecordTrxFrom(msg.From())
 	}
 
 	// Create a new context to be used in the EVM environment
 	context := NewEVMContext(msg, header, bc, author)
 	// Create a new environment which holds all relevant information
 	// about the transaction and calling mechanisms.
-	vmenv := vm.NewEVM(context, statedb, config, cfg, firehoseContext)
+	vmenv := vm.NewEVM(context, statedb, config, cfg, txFirehoseContext)
 	// Apply the transaction to the current state (included in the env)
 	_, gas, failed, err := ApplyMessage(vmenv, msg, gp)
 

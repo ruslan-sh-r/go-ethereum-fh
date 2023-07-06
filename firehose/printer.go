@@ -56,10 +56,14 @@ type ToBufferPrinter struct {
 	buffer *bytes.Buffer
 }
 
-func NewToBufferPrinter() *ToBufferPrinter {
+func NewToBufferPrinter(initialAllocationSizeInBytes int) *ToBufferPrinter {
 	return &ToBufferPrinter{
-		buffer: bytes.NewBuffer(nil),
+		buffer: bytes.NewBuffer(make([]byte, 0, initialAllocationSizeInBytes)),
 	}
+}
+
+func (p *ToBufferPrinter) Reset() {
+	p.buffer.Reset()
 }
 
 func (p *ToBufferPrinter) Disabled() bool {
@@ -124,12 +128,12 @@ func JSON(in interface{}) string {
 }
 
 func ReportHeaderComparisonResult(actual *types.Header, expected *types.Header) {
-	reportToUser("There is a mismatch between Firehose genesis block and actual chain's stored genesis block, the actual genesis")
-	reportToUser("block's hash field extracted from Geth's database does not fit with hash of genesis block generated")
-	reportToUser("from Firehose determined genesis config, you might need to provide the correct 'genesis.json' file")
-	reportToUser("via --firehose-genesis-file")
-	reportToUser("")
-	reportToUser("Comparison of the actual Firehose recomputed genesis block <> expected Geth genesis block")
+	ReportToUser("There is a mismatch between Firehose genesis block and actual chain's stored genesis block, the actual genesis")
+	ReportToUser("block's hash field extracted from Geth's database does not fit with hash of genesis block generated")
+	ReportToUser("from Firehose determined genesis config, you might need to provide the correct 'genesis.json' file")
+	ReportToUser("via --firehose-genesis-file")
+	ReportToUser("")
+	ReportToUser("Comparison of the actual Firehose recomputed genesis block <> expected Geth genesis block")
 
 	compareAddress := fieldComparisonReporter(func(x interface{}) string { return x.(common.Address).String() })
 	compareHash := fieldComparisonReporter(func(x interface{}) string { return x.(common.Hash).String() })
@@ -160,7 +164,7 @@ func ReportHeaderComparisonResult(actual *types.Header, expected *types.Header) 
 	compareHash("MixDigest", actual.MixDigest, expected.MixDigest)
 	compareUint64("Nonce", actual.Nonce.Uint64(), expected.Nonce.Uint64())
 
-	reportToUser("")
+	ReportToUser("")
 }
 
 func fieldComparisonReporter(toString func(x interface{}) string) func(field string, actual interface{}, expected interface{}) {
@@ -173,10 +177,10 @@ func fieldComparisonReporter(toString func(x interface{}) string) func(field str
 			sign = "=="
 		}
 
-		reportToUser("%s [(actual) %s %s %s (expected)]", field, resolvedActual, sign, resolvedExpected)
+		ReportToUser("%s [(actual) %s %s %s (expected)]", field, resolvedActual, sign, resolvedExpected)
 	}
 }
 
-func reportToUser(format string, args ...interface{}) {
+func ReportToUser(format string, args ...interface{}) {
 	fmt.Fprintf(os.Stderr, format+"\n", args...)
 }
