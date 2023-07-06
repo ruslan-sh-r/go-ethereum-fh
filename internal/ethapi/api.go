@@ -646,10 +646,10 @@ func (s *PublicBlockChainAPI) GetHeaderByHash(ctx context.Context, hash common.H
 }
 
 // GetBlockByNumber returns the requested canonical block.
-// * When blockNr is -1 the chain head is returned.
-// * When blockNr is -2 the pending chain head is returned.
-// * When fullTx is true all transactions in the block are returned, otherwise
-//   only the transaction hash is returned.
+//   - When blockNr is -1 the chain head is returned.
+//   - When blockNr is -2 the pending chain head is returned.
+//   - When fullTx is true all transactions in the block are returned, otherwise
+//     only the transaction hash is returned.
 func (s *PublicBlockChainAPI) GetBlockByNumber(ctx context.Context, number rpc.BlockNumber, fullTx bool) (map[string]interface{}, error) {
 	block, err := s.b.BlockByNumber(ctx, number)
 	if block != nil && err == nil {
@@ -889,6 +889,7 @@ func DoCall(ctx context.Context, b Backend, args CallArgs, blockNrOrHash rpc.Blo
 			nil,
 			nil,
 			0,
+			0,
 		)
 		firehoseContext.RecordTrxFrom(msg.From())
 	}
@@ -1018,7 +1019,7 @@ func (s *PublicBlockChainAPI) Execute(ctx context.Context, args CallArgs, blockN
 		accounts = *overrides
 	}
 
-	firehoseContext := firehose.NewSpeculativeExecutionContext()
+	firehoseContext := firehose.NewSpeculativeExecutionContext(512 * 1024)
 	result, err := DoCall(ctx, s.b, args, blockNrOrHash, accounts, vm.Config{}, 5*time.Second, s.b.RPCGasCap(), firehoseContext)
 
 	// As soon as we have an execution result, we should have a complete Firehose log, so let's return it
