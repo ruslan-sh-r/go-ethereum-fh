@@ -191,7 +191,7 @@ func Setup(ctx *cli.Context, firehoseGenesis *core.Genesis, firehoseGethVersion 
 		StartPProf(address, !ctx.GlobalIsSet("metrics.addr"))
 	}
 
-	firehose.Init(ctx.GlobalBool(firehoseEnabledFlag.Name),
+	if err := firehose.Init(ctx.GlobalBool(firehoseEnabledFlag.Name),
 		ctx.GlobalBoolT(firehoseSyncInstrumentationFlag.Name),
 		ctx.GlobalBool(firehoseMiningEnabledFlag.Name),
 		ctx.GlobalBool(firehoseBlockProgressFlag.Name),
@@ -199,7 +199,9 @@ func Setup(ctx *cli.Context, firehoseGenesis *core.Genesis, firehoseGethVersion 
 		ctx.GlobalString(firehoseGenesisFileFlag.Name),
 		func() interface{} { return new(core.Genesis) },
 		firehoseGethVersion,
-	)
+	); err != nil {
+		return fmt.Errorf("initializing firehose: %w", err)
+	}
 
 	return nil
 }
