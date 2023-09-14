@@ -17,7 +17,6 @@
 package debug
 
 import (
-	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -30,7 +29,6 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/metrics"
 	"github.com/ethereum/go-ethereum/metrics/exp"
-	"github.com/ethereum/go-ethereum/params"
 	"github.com/fjl/memsize/memsizeui"
 	"github.com/mattn/go-colorable"
 	"github.com/mattn/go-isatty"
@@ -144,7 +142,7 @@ func init() {
 
 // Setup initializes profiling and logging based on the CLI flags.
 // It should be called as early as possible in the program.
-func Setup(ctx *cli.Context, genesis *core.Genesis) error {
+func Setup(ctx *cli.Context, firehoseGenesis *core.Genesis, firehoseGethVersion string) error {
 	var ostream log.Handler
 	output := io.Writer(os.Stderr)
 	if ctx.GlobalBool(logjsonFlag.Name) {
@@ -193,52 +191,14 @@ func Setup(ctx *cli.Context, genesis *core.Genesis) error {
 		StartPProf(address, !ctx.GlobalIsSet("metrics.addr"))
 	}
 
-	// Firehose
-	log.Info("Initializing firehose")
-	firehose.Enabled = ctx.GlobalBool(firehoseEnabledFlag.Name)
-	firehose.SyncInstrumentationEnabled = ctx.GlobalBoolT(firehoseSyncInstrumentationFlag.Name)
-	firehose.MiningEnabled = ctx.GlobalBool(firehoseMiningEnabledFlag.Name)
-	firehose.BlockProgressEnabled = ctx.GlobalBool(firehoseBlockProgressFlag.Name)
-
-	if firehose.Enabled {
-		firehose.Init()
-	}
-
-	genesisProvenance := "unset"
-
-	if genesis != nil {
-		firehose.GenesisConfig = genesis
-		genesisProvenance = "Geth Specific Flag"
-	} else {
-		if genesisFilePath := ctx.GlobalString(firehoseGenesisFileFlag.Name); genesisFilePath != "" {
-			file, err := os.Open(genesisFilePath)
-			if err != nil {
-				return fmt.Errorf("firehose open genesis file: %w", err)
-			}
-			defer file.Close()
-
-			genesis := &core.Genesis{}
-			if err := json.NewDecoder(file).Decode(genesis); err != nil {
-				return fmt.Errorf("decode genesis file %q: %w", genesisFilePath, err)
-			}
-
-			firehose.GenesisConfig = genesis
-			genesisProvenance = "Flag " + firehoseGenesisFileFlag.Name
-		} else {
-			firehose.GenesisConfig = core.DefaultGenesisBlock()
-			genesisProvenance = "Geth Default"
-		}
-	}
-
-	log.Info("Firehose initialized",
-		"enabled", firehose.Enabled,
-		"sync_instrumentation_enabled", firehose.SyncInstrumentationEnabled,
-		"mining_enabled", firehose.MiningEnabled,
-		"block_progress_enabled", firehose.BlockProgressEnabled,
-		"genesis_provenance", genesisProvenance,
-		"firehose_version", params.FirehoseVersion(),
-		"geth_version", params.VersionWithMeta,
-		"chain_variant", params.Variant,
+	firehose.Init(ctx.GlobalBool(firehoseEnabledFlag.Name),
+		ctx.GlobalBoolT(firehoseSyncInstrumentationFlag.Name),
+		ctx.GlobalBool(firehoseMiningEnabledFlag.Name),
+		ctx.GlobalBool(firehoseBlockProgressFlag.Name),
+		firehoseGenesis,
+		ctx.GlobalString(firehoseGenesisFileFlag.Name),
+		func() interface{} { return new(core.Genesis) },
+		firehoseGethVersion,
 	)
 
 	return nil

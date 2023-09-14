@@ -35,7 +35,6 @@ import (
 	"github.com/ethereum/go-ethereum/eth"
 	"github.com/ethereum/go-ethereum/eth/downloader"
 	"github.com/ethereum/go-ethereum/ethclient"
-	"github.com/ethereum/go-ethereum/firehose"
 	"github.com/ethereum/go-ethereum/internal/debug"
 	"github.com/ethereum/go-ethereum/internal/ethapi"
 	"github.com/ethereum/go-ethereum/internal/flags"
@@ -250,15 +249,9 @@ func init() {
 	app.Flags = append(app.Flags, metricsFlags...)
 
 	app.Before = func(ctx *cli.Context) error {
-		if err := debug.Setup(ctx, utils.MakeGenesis(ctx)); err != nil {
+		if err := debug.Setup(ctx, utils.MakeGenesis(ctx), params.VersionWithCommit(gitCommit, gitDate)); err != nil {
 			return err
 		}
-
-		firehose.MaybeSyncContext().InitVersion(
-			params.VersionWithCommit(gitCommit, gitDate),
-			params.FirehoseVersion(),
-			params.Variant,
-		)
 
 		return nil
 	}
