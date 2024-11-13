@@ -20,6 +20,7 @@ import (
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/firehose"
 	"github.com/holiman/uint256"
 )
 
@@ -62,11 +63,13 @@ type Contract struct {
 	Gas          uint64
 	value        *big.Int
 	isPrecompile bool
+
+	firehoseContext *firehose.Context
 }
 
 // NewContract returns a new contract environment for the execution of EVM.
-func NewContract(caller, object ContractRef, value *big.Int, gas uint64) *Contract {
-	c := &Contract{CallerAddress: caller.Address(), caller: caller, self: object}
+func NewContract(caller, object ContractRef, value *big.Int, gas uint64, firehoseContext *firehose.Context) *Contract {
+	c := &Contract{CallerAddress: caller.Address(), caller: caller, self: object, firehoseContext: firehoseContext}
 
 	if parent, ok := caller.(*Contract); ok {
 		// Reuse JUMPDEST analysis from parent context if available.
@@ -195,11 +198,16 @@ func (c *Contract) Caller() common.Address {
 }
 
 // UseGas attempts the use gas and subtracts it and returns true on success
-func (c *Contract) UseGas(gas uint64) (ok bool) {
+func (c *Contract) UseGas(gas uint64, reason firehose.GasChangeReason) (ok bool) {
 	if c.Gas < gas {
 		return false
 	}
+
+	if c.firehoseContext.Enabled() {
+		c.firehoseContext.RecordGasConsume(c.Gas, gas, reason)
+	}
 	c.Gas -= gas
+
 	return true
 }
 

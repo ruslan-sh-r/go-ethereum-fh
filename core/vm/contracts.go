@@ -30,6 +30,7 @@ import (
 	"github.com/ethereum/go-ethereum/crypto/blake2b"
 	"github.com/ethereum/go-ethereum/crypto/bls12381"
 	"github.com/ethereum/go-ethereum/crypto/bn256"
+	"github.com/ethereum/go-ethereum/firehose"
 	"github.com/ethereum/go-ethereum/params"
 	"golang.org/x/crypto/ripemd160"
 )
@@ -265,6 +266,7 @@ func (evm *EVM) RunPrecompiledContract(
 	suppliedGas uint64,
 	value *big.Int,
 	readOnly bool,
+  firehoseContext *firehose.Context,
 ) (ret []byte, remainingGas uint64, err error) {
 	return runPrecompiledContract(evm, p, caller, input, suppliedGas, value, readOnly)
 }
@@ -277,6 +279,7 @@ func runPrecompiledContract(
 	suppliedGas uint64,
 	value *big.Int,
 	readOnly bool,
+  firehoseContext *firehose.Context,
 ) (ret []byte, remainingGas uint64, err error) {
 	addrCopy := p.Address()
 	inputCopy := make([]byte, len(input))
@@ -288,6 +291,10 @@ func runPrecompiledContract(
 	gasCost := p.RequiredGas(input)
 	if !contract.UseGas(gasCost) {
 		return nil, contract.Gas, ErrOutOfGas
+	}
+
+	if firehoseContext.Enabled() {
+		firehoseContext.RecordGasConsume(suppliedGas, gasCost, firehose.GasChangeReason("precompiled_contract"))
 	}
 
 	output, err := p.Run(evm, contract, readOnly)
