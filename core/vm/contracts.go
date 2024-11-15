@@ -266,7 +266,7 @@ func (evm *EVM) RunPrecompiledContract(
 	suppliedGas uint64,
 	value *big.Int,
 	readOnly bool,
-  firehoseContext *firehose.Context,
+	firehoseContext *firehose.Context,
 ) (ret []byte, remainingGas uint64, err error) {
 	return runPrecompiledContract(evm, p, caller, input, suppliedGas, value, readOnly)
 }
@@ -279,7 +279,7 @@ func runPrecompiledContract(
 	suppliedGas uint64,
 	value *big.Int,
 	readOnly bool,
-  firehoseContext *firehose.Context,
+	firehoseContext *firehose.Context,
 ) (ret []byte, remainingGas uint64, err error) {
 	addrCopy := p.Address()
 	inputCopy := make([]byte, len(input))
@@ -289,12 +289,8 @@ func runPrecompiledContract(
 	contract.Input = inputCopy
 
 	gasCost := p.RequiredGas(input)
-	if !contract.UseGas(gasCost) {
+	if !contract.UseGas(gasCost, firehose.GasChangeReason("precompiled_contract")) {
 		return nil, contract.Gas, ErrOutOfGas
-	}
-
-	if firehoseContext.Enabled() {
-		firehoseContext.RecordGasConsume(suppliedGas, gasCost, firehose.GasChangeReason("precompiled_contract"))
 	}
 
 	output, err := p.Run(evm, contract, readOnly)

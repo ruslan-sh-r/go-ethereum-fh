@@ -330,7 +330,7 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 
 	// Set up the initial access list.
 	if rules := st.evm.ChainConfig().Rules(st.evm.Context.BlockNumber, st.evm.Context.Random != nil); rules.IsBerlin {
-		st.state.PrepareAccessList(msg.From(), msg.To(), st.evm..ActivePrecompiles(rules), msg.AccessList())
+		st.state.PrepareAccessList(msg.From(), msg.To(), st.evm.ActivePrecompiles(rules), msg.AccessList())
 	}
 
 	var (

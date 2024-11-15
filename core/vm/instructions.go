@@ -541,8 +541,12 @@ func opSstore(pc *uint64, interpreter *EVMInterpreter, scope *ScopeContext) ([]b
 	}
 	loc := scope.Stack.Pop()
 	val := scope.Stack.Pop()
-	interpreter.evm.StateDB.SetState(scope.Contract.Address(), loc.Bytes32(),
-                                   val.Bytes32(), interpreter.evm.firehoseContext)
+	interpreter.evm.StateDB.SetState(
+		scope.Contract.Address(),
+		loc.Bytes32(),
+		val.Bytes32(),
+		interpreter.evm.firehoseContext,
+	)
 	return nil, nil
 }
 
@@ -626,7 +630,7 @@ func opCreate(pc *uint64, interpreter *EVMInterpreter, scope *ScopeContext) ([]b
 	} else {
 		stackvalue.SetBytes(addr.Bytes())
 	}
-	scope.Stack.push(&stackvalue)
+	scope.Stack.Push(&stackvalue)
 
 	if interpreter.evm.firehoseContext.Enabled() {
 		interpreter.evm.firehoseContext.RecordGasRefund(scope.Contract.Gas, returnGas)
@@ -672,7 +676,7 @@ func opCreate2(pc *uint64, interpreter *EVMInterpreter, scope *ScopeContext) ([]
 	} else {
 		stackvalue.SetBytes(addr.Bytes())
 	}
-	scope.Stack.push(&stackvalue)
+	scope.Stack.Push(&stackvalue)
 
 	if interpreter.evm.firehoseContext.Enabled() {
 		interpreter.evm.firehoseContext.RecordGasRefund(scope.Contract.Gas, returnGas)

@@ -106,10 +106,10 @@ type EVM struct {
 	// available gas is calculated in gasCall* according to the 63/64 rule and later
 	// applied in opCall*.
 	callGasTemp uint64
-  // precompiles defines the precompiled contracts used by the EVM
+	// precompiles defines the precompiled contracts used by the EVM
 	precompiles map[common.Address]PrecompiledContract
 	// activePrecompiles defines the precompiles that are currently active
-	activePrecompiles []common.Address  
+	activePrecompiles []common.Address
 
 	firehoseContext *firehose.Context
 }
@@ -472,8 +472,7 @@ func (evm *EVM) StaticCall(caller ContractRef, addr common.Address, input []byte
 	// We could change this, but for now it's left for legacy reasons
 	snapshot := evm.StateDB.Snapshot()
 
-	// Deep Mind moved this piece of code from the next if statement below (`if isPrecompile` was `if  p, isPrecompile := evm.precompile(addr); isPrecompile`)
-	p, isPrecompile := evm.precompile(addr)
+	p, isPrecompile := evm.Precompile(addr)
 
 	// We do an AddBalance of zero here, just in order to trigger a touch.
 	// This doesn't matter on Mainnet, where all empties are gone at the time of Byzantium,
@@ -489,7 +488,7 @@ func (evm *EVM) StaticCall(caller ContractRef, addr common.Address, input []byte
 		}(gas)
 	}
 
-	if p, isPrecompile := evm.Precompile(addr); isPrecompile {
+	if isPrecompile {
 		// Note: delegate call is not allowed to modify state on precompiles
 		ret, gas, err = evm.RunPrecompiledContract(p, caller, input, gas, new(big.Int), true, evm.firehoseContext)
 	} else {
