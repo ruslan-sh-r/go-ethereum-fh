@@ -22,6 +22,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/vm"
+	"github.com/ethereum/go-ethereum/firehose"
 )
 
 const (
@@ -92,7 +93,7 @@ func fuzz(id byte, data []byte) int {
 	}
 	cpy := make([]byte, len(data))
 	copy(cpy, data)
-	contract := vm.NewPrecompile(vm.AccountRef(common.Address{}), precompile, common.Big0, gas)
+	contract := vm.NewPrecompile(vm.AccountRef(common.Address{}), precompile, common.Big0, gas, firehose.NoOpContext)
 	contract.Input = cpy
 	_, err := precompile.Run(nil, contract, false)
 	if !bytes.Equal(cpy, data) {

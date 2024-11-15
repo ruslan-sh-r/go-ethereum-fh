@@ -268,7 +268,7 @@ func (evm *EVM) RunPrecompiledContract(
 	readOnly bool,
 	firehoseContext *firehose.Context,
 ) (ret []byte, remainingGas uint64, err error) {
-	return runPrecompiledContract(evm, p, caller, input, suppliedGas, value, readOnly)
+	return runPrecompiledContract(evm, p, caller, input, suppliedGas, value, readOnly, firehoseContext)
 }
 
 func runPrecompiledContract(
@@ -285,7 +285,7 @@ func runPrecompiledContract(
 	inputCopy := make([]byte, len(input))
 	copy(inputCopy, input)
 
-	contract := NewPrecompile(caller, AccountRef(addrCopy), value, suppliedGas)
+	contract := NewPrecompile(caller, AccountRef(addrCopy), value, suppliedGas, firehoseContext)
 	contract.Input = inputCopy
 
 	gasCost := p.RequiredGas(input)

@@ -69,7 +69,12 @@ type Contract struct {
 
 // NewContract returns a new contract environment for the execution of EVM.
 func NewContract(caller, object ContractRef, value *big.Int, gas uint64, firehoseContext *firehose.Context) *Contract {
-	c := &Contract{CallerAddress: caller.Address(), caller: caller, self: object, firehoseContext: firehoseContext}
+	c := &Contract{
+		CallerAddress:   caller.Address(),
+		caller:          caller,
+		self:            object,
+		firehoseContext: firehoseContext,
+	}
 
 	if parent, ok := caller.(*Contract); ok {
 		// Reuse JUMPDEST analysis from parent context if available.
@@ -88,12 +93,13 @@ func NewContract(caller, object ContractRef, value *big.Int, gas uint64, firehos
 }
 
 // NewPrecompile returns a new instance of a precompiled contract environment for the execution of EVM.
-func NewPrecompile(caller, object ContractRef, value *big.Int, gas uint64) *Contract {
+func NewPrecompile(caller, object ContractRef, value *big.Int, gas uint64, firehoseContext *firehose.Context) *Contract {
 	c := &Contract{
-		CallerAddress: caller.Address(),
-		caller:        caller,
-		self:          object,
-		isPrecompile:  true,
+		CallerAddress:   caller.Address(),
+		caller:          caller,
+		self:            object,
+		isPrecompile:    true,
+		firehoseContext: firehoseContext,
 	}
 
 	// Gas should be a pointer so it can safely be reduced through the run
