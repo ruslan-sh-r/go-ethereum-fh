@@ -84,9 +84,9 @@ func BenchmarkTransactionTrace(b *testing.B) {
 	// Create the tracer, the EVM environment and run it
 	tracer := logger.NewStructLogger(&logger.Config{
 		Debug: false,
-		//DisableStorage: true,
-		//EnableMemory: false,
-		//EnableReturnData: false,
+		// DisableStorage: true,
+		// EnableMemory: false,
+		// EnableReturnData: false,
 	})
 	evm := vm.NewEVM(context, txContext, statedb, params.AllEthashProtocolChanges, vm.Config{Debug: true, Tracer: tracer}, firehose.NoOpContext)
 	msg, err := tx.AsMessage(signer, nil)
